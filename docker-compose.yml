@@ -1,0 +1,66 @@
+version: '3.8'
+services:
+  jenkins-master:
+    build: ./jenkins-master
+    container_name: jenkins-master
+    ports:
+      - "8080:8080"
+      - "50000:50000" # Port for agent communication
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    networks:
+      - jenkins-network
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:8080/login"]
+      interval: 10s
+      retries: 5
+      timeout: 10s
+
+  nodejs-slave:
+    build: ./nodejs-slave
+    privileged: true
+    ulimits:
+      nofile: 1024
+    container_name: nodejs-slave
+    ports:
+      - "3000:3000"
+    # volumes:
+    #   - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - jenkins-network
+    environment:
+      - JENKINS_URL=http://jenkins-master:8080
+      - JNLP_URL=http://jenkins-master:8080/computer/nodejs-slave/jenkins-agent.jnlp
+      - SECRET=96a377a8632121dfcbb29f3eddcea4e32b3c7403b1057752d421358f24f3ba2b
+      - SLAVE_NAME=nodejs-slave
+    depends_on:
+      jenkins-master:
+        condition: service_healthy
+        restart: true
+
+  java-slave:
+    build: ./java-slave
+    container_name: java-slave
+    privileged: true
+    ulimits:
+      nofile: 1024
+    ports:
+      - "3001:3001"
+    networks:
+      - jenkins-network
+    environment:
+      - JENKINS_URL=http://jenkins-master:8080
+      - JNLP_URL=http://jenkins-master:8080/computer/java-slave/jenkins-agent.jnlp
+      - SECRET=e2725f4b0d6090bbc7a64e1977cd724827c54a59aed4e1b93920fcda6b0bb025
+      - SLAVE_NAME=java-slave
+    depends_on:
+      jenkins-master:
+        condition: service_healthy
+        restart: true
+
+networks:
+  jenkins-network:
+    driver: bridge
+
+volumes:
+  jenkins_home:
