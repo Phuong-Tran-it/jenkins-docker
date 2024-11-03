@@ -1,4 +1,4 @@
-FROM eclipse-temurin:17-jdk-alpine
+FROM --platform=linux/arm64 eclipse-temurin:17-jdk-alpine
 
 ARG JAR_NAME
 

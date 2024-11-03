@@ -1,4 +1,8 @@
 #!/bin/sh
+# export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+# export MAVEN_HOME=/usr/share/maven
+# export PATH=$JAVA_HOME/bin:$MAVEN_HOME/bin:$PATH
+
 apt-get update && apt-get install -y \
     git \
     curl \
