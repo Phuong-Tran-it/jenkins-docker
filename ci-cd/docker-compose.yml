@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: demo
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  backend:
+    image: phuongtn20/backend-app:${BACKEND_COMMIT_HASH}
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    ports:
+      - "8080:8080"
+    depends_on:
+      - database
+
+  frontend:
+    image: phuongtn20/frontend-app:${FRONTEND_COMMIT_HASH}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
