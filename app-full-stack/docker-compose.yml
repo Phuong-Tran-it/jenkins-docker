@@ -1,0 +1,76 @@
+version: '3.8'  
+
+services:
+  nginx:  
+    image: nginx:alpine
+    ports:  
+      - "80:80"  
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:  
+      - frontend
+      - backend
+    networks:
+      - app-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    networks:  
+      - app-network
+    ports:
+      - "3306:3306"
+    volumes:  
+      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      MYSQL_ROOT_PASSWORD: P@ssw0rd
+      MYSQL_USER: product_user
+      MYSQL_PASSWORD: product_user_password
+      MYSQL_DATABASE: product
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=$$MYSQL_ROOT_PASSWORD || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  backend:  
+    image: ${BACKEND_REPO}:${BACKEND_TAG}
+    environment:  
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/product
+      SPRING_DATASOURCE_USERNAME: product_user
+      SPRING_DATASOURCE_PASSWORD: product_user_password
+    depends_on:
+      mysql:
+        condition: service_healthy
+        restart: true
+    networks:
+      - app-network
+    links:
+      - mysql
+    healthcheck:
+      test: ["CMD", "curl", "--silent", "--fail", "http://localhost:3003/api/products"]
+      interval: 10s
+      retries: 5
+      timeout: 10s
+
+  frontend:
+    image: ${FRONTEND_REPO}:${FRONTEND_TAG}
+    environment:
+      - NODE_ENV=production
+    networks:
+      - app-network
+    depends_on:  
+      backend:
+        condition: service_healthy
+        restart: true
+    # volumes:  
+    #   - frontend-data:/app/data
+volumes:  
+  mysql-data:
+    driver: local
+
+networks:  
+  app-network:  
+    driver: bridge
